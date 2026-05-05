@@ -6,6 +6,7 @@ from keys import NODES
 #rsa.py takes input and computes all calculations
 from rsa import sign, verify, hash_to_int
 
+#ref: https://code.visualstudio.com/docs/python/tutorial-flask
 app = Flask(__name__)
 
 @app.route('/')
@@ -42,23 +43,25 @@ def add_record():
     signature = sign(h, signer["n"], signer["d"])
 
     #Build the verification list as HTML
+    #ref: https://www.w3schools.com/php/php_forms.asp
     results_html = ""
     for node_id in NODES:
         h_check = hash_to_int(record)
         ok = verify(h_check, signature, signer["n"], signer["e"])
         results_html += f"<li>Node {node_id}: {'VALID' if ok else 'INVALID'}</li>"
 
+    #ref: https://developer.mozilla.org/en-US/docs/Web/HTML
     return f"""
-    <h1>Record submission workflow</h1>
-    <h3>Record</h3>
-    <p>{record}</p>
-    <h3>SHA-256 hash</h3>
-    <p style="word-break:break-all;">{h}</p>
-    <h3>Signed by Inventory {origin}</h3>
-    <p style="word-break:break-all;">{signature}</p>
-    <h3>Verification</h3>
-    <ul>{results_html}</ul>
-    <a href="/">Submit another</a>
+        <h1>Record submission workflow</h1>
+        <h3>Record</h3>
+        <p>{record}</p>
+        <h3>SHA-256 hash</h3>
+        <p>{h}</p>
+        <h3>Signed by Inventory {origin}</h3>
+        <p>{signature}</p>
+        <h3>Verification</h3>
+        <ul>{results_html}</ul>
+        <a href="/">Submit another</a>
     """
 
 if __name__ == '__main__':

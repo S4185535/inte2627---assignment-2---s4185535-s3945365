@@ -14,4 +14,5 @@ def sign(hash_int, n, d):
 
 def verify(hash_int, signature, n, e):
     #m = s^e mod n
+    #Returns boolean
     return hash_int == pow(signature, e, n)
