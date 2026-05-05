@@ -23,17 +23,22 @@ def home():
       <select name="origin">
         <option>A</option><option>B</option><option>C</option><option>D</option>
       </select><br><br>
+      <input type="checkbox" id="tamper" name="tamper" value="yes">
+      <label for="tamper">Tamper with record after signing (demo)</label><br><br>
       <button type="submit">Submit</button>
     </form>
     """
 
 @app.route('/add_record', methods=['POST'])
 def add_record():
+    invalid = False
     #Takes inputs from website and adds them to variables
     item_id = request.form['item_id']
     qty = request.form['qty']
     price = request.form['price']
     origin = request.form['origin']
+    #Only present in data if checkbox is ticked
+    tamper = request.form.get('tamper') == 'yes'
     #Forms input into string
     record = f"{item_id}|{qty}|{price}|{origin}"
     #Uses function from rsa.py to hash the record
@@ -41,7 +46,10 @@ def add_record():
     #Finds the warehouse's public and private key from NODES dictionary
     signer = NODES[origin]
     signature = sign(h, signer["n"], signer["d"])
-
+    #If tampering demo is checked, the record will be tampered with showing...
+    #that the other warehouses cannot confirm the integrity and authenticity of the data
+    if tamper:
+        record = record + 'X'
     #Build the verification list as HTML
     #ref: https://www.w3schools.com/php/php_forms.asp
     results_html = ""
@@ -49,6 +57,12 @@ def add_record():
         h_check = hash_to_int(record)
         ok = verify(h_check, signature, signer["n"], signer["e"])
         results_html += f"<li>Node {node_id}: {'VALID' if ok else 'INVALID'}</li>"
+        if not ok:
+            invalid = True
+    if invalid:
+        validation_message = 'INTEGRITY AND AUTHENTICITY OF MESSAGE CANNOT BE CONFIRMED. NEW RECORD WILL NOT BE ADDED'
+    else:
+        validation_message = 'Record integrity and authenticity verified. Record can be added'
 
     #ref: https://developer.mozilla.org/en-US/docs/Web/HTML
     return f"""
@@ -61,6 +75,7 @@ def add_record():
         <p>{signature}</p>
         <h3>Verification</h3>
         <ul>{results_html}</ul>
+        <p>{validation_message}<p>
         <a href="/">Submit another</a>
     """
 
