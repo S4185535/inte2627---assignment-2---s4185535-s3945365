@@ -1,13 +1,11 @@
 #All p, q, e values are hardcoded from the List of Keys document
 
-
 def gen_keys(p, q, e):
     #Given p, q, e -> return public key (e, n) and private key d
     n = p * q
     phin = (p - 1) * (q - 1)
     d = pow(e, -1, phin)   #modular inverse of e mod phi(n)
     return e, n, d
-
 
 #Inventory A
 P_A = int(1210613765735147311106936311866593978079938707)
@@ -32,6 +30,9 @@ P_D = int(1287737200891425621338551020762858710281638317)
 Q_D = int(1330909125725073469794953234151525201084537607)
 E_D = int(33981230465225879849295979)
 e_d, n_d, d_d = gen_keys(P_D, Q_D, E_D)
+
+#Dictionary so loop over all 4 nodes easily.
+NODES = {"A": {"e": e_a, "n": n_a, "d": d_a}, "B": {"e": e_b, "n": n_b, "d": d_b}, "C": {"e": e_c, "n": n_c, "d": d_c}, "D": {"e": e_d, "n": n_d, "d": d_d},}
 
 if __name__ == "__main__":
     print("Inventory A keys:")
