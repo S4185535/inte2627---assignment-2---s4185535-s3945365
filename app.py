@@ -1,3 +1,4 @@
+#run this .py to launch the website
 from flask import Flask
 
 app = Flask(__name__)
