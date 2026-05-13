@@ -33,6 +33,8 @@ def home():
 
 @app.route('/add_record', methods=['POST'])
 def add_record():
+
+    #Task 1 - Digital signature 
     invalid = False
     #Takes inputs from website and adds them to variables
     item_id = request.form['item_id']
@@ -65,6 +67,26 @@ def add_record():
         validation_message = 'INTEGRITY AND AUTHENTICITY OF MESSAGE CANNOT BE CONFIRMED. NEW RECORD WILL NOT BE ADDED'
     else:
         validation_message = 'Record integrity and authenticity verified. Record can be added'
+
+    #Task 2 - BFT Consensus
+    consensus_result = bft_consesnsus(record, origin, signature)
+
+    #step 1 html
+    step1_html = f"""
+    <div class="step 1">
+        <b> 
+    """
+    #step 2 html
+    step1_html = f"""
+    <div class="step 2">
+        <b> 
+    """
+    #step 3 html
+    step1_html = f"""
+    <div class="step 3">
+        <b> 
+    """
+    
 
     #ref: https://developer.mozilla.org/en-US/docs/Web/HTML
     return f"""
