@@ -5,6 +5,8 @@ from flask import Flask, request
 from keys import NODES
 #rsa.py takes input and computes all calculations
 from rsa import sign, verify, hash_to_int
+#consensus.py handles consensus process for new records
+from consensus import bft_consesnsus, get_all_ledgers
 
 #ref: https://code.visualstudio.com/docs/python/tutorial-flask
 app = Flask(__name__)
