@@ -130,7 +130,7 @@ def add_record():
         committed = ", ".join(f"Node {n}" for n in consensus_result['committed_nodes'])
         phase4_html = f"""
         <div class="phase">
-          <b>Step 4 – Finality</b><br>
+          <b>Step 4 Finality</b><br>
           Supermajority met ({consensus_result['accept_count']} ≥ {consensus_result['supermajority']}).
           Record is final and appended to: <b>{committed}</b>.
         </div>
