@@ -20,7 +20,7 @@ def _append_record_(node_id:str, record:str) -> None:
         f.write(record + "\n")
 
 #BFT Consensus Algorithm Implementation
-def bft_consesnsus(record: str ,proposer: str, signature: int ) -> dict:
+def bft_consensus(record: str ,proposer: str, signature: int ) -> dict:
     num_nodes = len(NODES)
     supermajority = math.ceil((num_nodes * 2) / 3)
 

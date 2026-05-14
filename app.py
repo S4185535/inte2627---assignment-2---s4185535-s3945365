@@ -6,7 +6,7 @@ from keys import NODES
 #rsa.py takes input and computes all calculations
 from rsa import sign, verify, hash_to_int
 #consensus.py handles consensus process for new records
-from consensus import bft_consesnsus, get_all_ledgers
+from consensus import bft_consensus, get_all_ledgers
 
 #ref: https://code.visualstudio.com/docs/python/tutorial-flask
 app = Flask(__name__)
@@ -69,24 +69,76 @@ def add_record():
         validation_message = 'Record integrity and authenticity verified. Record can be added'
 
     #Task 2 - BFT Consensus
-    consensus_result = bft_consesnsus(record, origin, signature)
+    consensus_result = bft_consensus(record, origin, signature)
 
     #step 1 html
-    step1_html = f"""
-    <div class="step 1">
-        <b> 
+    phase1_html = f"""
+    <div class="phase">
+      <b>Step 1 Leader Election</b><br>
+      Node <b>{consensus_result['leader']['leader']}</b> is selected as the leader/proposer
+      for this consensus round (the node that created and signed the record).
+    </div>
     """
+
     #step 2 html
-    step1_html = f"""
-    <div class="step 2">
-        <b> 
+    phase2_html = f"""
+    <div class="phase">
+      <b>Step 2 Proposal</b><br>
+      Leader Node <b>{origin}</b> broadcasts the signed record to all
+      {consensus_result['n_nodes']} validator nodes: <b>{", ".join(f"Node {n}" for n in consensus_result['proposal']['to'])}</b>.
+    </div>
     """
+
     #step 3 html
-    step1_html = f"""
-    <div class="step 3">
-        <b> 
+    vote_rows = ""
+    for node_id, info in consensus_result['votes'].items():
+        css   = "accept" if info['vote'] == "ACCEPT" else "reject"
+        vote_rows += (
+            f"<tr>"
+            f"<td>Node {node_id}</td>"
+            f"<td class='mono'>{info['hash']}</td>"
+            f"<td class='{css}'>{info['vote']}</td>"
+            f"</tr>"
+        )
+ 
+    phase3_html = f"""
+    <div class="phase">
+      <b>Step 3 Voting (Pre-vote)</b><br>
+      Each node re-hashes the received record and verifies the RSA signature
+      using Node {origin}'s public key. A supermajority of ≥ {consensus_result['threshold']}
+      ACCEPT votes is required to prevent conflicting records being committed.
+    </div>
+    <table>
+      <tr><th>Node</th><th>SHA-256 hash (int)</th><th>Pre-vote</th></tr>
+      {vote_rows}
+    </table>
+    <p>ACCEPT votes: <b>{consensus_result['accept_count']}</b> / {consensus_result['n_nodes']} &nbsp;|&nbsp;
+       Supermajority threshold (⌈2/3 × {consensus_result['n_nodes']}⌉): <b>{consensus_result['threshold']}</b></p>
     """
-    
+    if consensus_result['consensus_reached']:
+        committed = ", ".join(f"Node {n}" for n in result['committed_nodes'])
+        phase4_html = f"""
+        <div class="phase">
+          <b>Step 4 – Finality</b><br>
+          Supermajority met ({consensus_result['accept_count']} ≥ {consensus_result['threshold']}).
+          Record is final and appended to: <b>{committed}</b>.
+        </div>
+        <div class="commit">
+            <b>CONSENSUS REACHED</b> — Record is now immutable and stored in all node ledgers.
+        </div>
+        """
+    else:
+        phase4_html = f"""
+        <div class="phase">
+          <b>Step 4 Finality</b><br>
+          Supermajority NOT met ({consensus_result['accept_count']} &lt; {consensus_result['threshold']}).
+          Record cannot be finalised.
+        </div>
+        <div class="nocommit">
+            <b>CONSENSUS FAILED</b> — Record was NOT stored.
+        </div>
+        """
+
 
     #ref: https://developer.mozilla.org/en-US/docs/Web/HTML
     return f"""
@@ -101,6 +153,17 @@ def add_record():
         <ul>{results_html}</ul>
         <p>{validation_message}<p>
         <a href="/">Submit another</a>
+        
+        <h2>Task 2 BFT Consensus</h2>
+        <p>
+        Simplified BFT consensus with <b>{consensus_result['n_nodes']} nodes</b>.
+        Supermajority commit threshold: ≥ {consensus_result['threshold']} ACCEPT votes.
+        </p>
+ 
+    {phase1_html}
+    {phase2_html}
+    {phase3_html}
+    {phase4_html}
     """
 
 if __name__ == '__main__':
