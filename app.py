@@ -19,10 +19,10 @@ def home():
     ledgers = get_all_ledgers()
     ledger_html = "<h2>Current Ledgers</h2>"
     for node_id, records in ledgers.items():
-        rows = "".join(f"<tr><td>{r}</td></tr>" for r in records) or "tr<td><i>No records</i></td>"
+        rows = "".join(f"<tr><td>{r}</td></tr>" for r in records) or "<tr><td><i>No records</i></td></tr>"
         ledger_html += f"<h4> Node {node_id}</h4><table>{rows}</table>"
 
-    return """
+    return f"""
     <h1>DLT Inventory System</h1>
     <h2>Submit a new inventory record</h2>
     <form action="/add_record" method="POST">
@@ -38,9 +38,9 @@ def home():
       <button type="submit">Submit</button>
     </form>
 
-    <h2>Current node Ledgers</h2>
-    {ledger_html}
+    {ledger_html}   
     """
+    
 
 @app.route('/add_record', methods=['POST'])
 def add_record():
