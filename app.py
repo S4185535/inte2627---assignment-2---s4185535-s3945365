@@ -149,6 +149,12 @@ def add_record():
             <b>CONSENSUS FAILED</b> — Record was NOT stored.
         </div>
         """
+    #ledger
+    ledgers = get_all_ledgers()
+    ledger_html = "<h2>Current Ledgers</h2>"
+    for node_id, records in ledgers.items():
+        rows = "".join(f"<tr><td>{r}</td></tr>" for r in records) or "<tr><td><i>No records</i></td></tr>"
+        ledger_html += f"<h4> Node {node_id}</h4><table>{rows}</table>"
 
 
     #ref: https://developer.mozilla.org/en-US/docs/Web/HTML
@@ -175,6 +181,8 @@ def add_record():
     {phase2_html}
     {phase3_html}
     {phase4_html}
+    <hr>
+    {ledger_html}
     """
 
 if __name__ == '__main__':
