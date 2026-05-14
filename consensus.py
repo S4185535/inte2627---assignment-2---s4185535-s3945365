@@ -48,7 +48,7 @@ def bft_consensus(record: str ,proposer: str, signature: int ) -> dict:
         h = hash_to_int(record)
         valid = verify(h, signature, leader_pub_key["n"], leader_pub_key["e"])
         vote = "ACCEPT" if valid else "REJECT"
-        votes[node_id] = {h, vote}
+        votes[node_id] = {"hash": h, "vote": vote}
         # { 
         #     "hash" = h,
         #     "vote" = vote,
@@ -76,7 +76,7 @@ def bft_consensus(record: str ,proposer: str, signature: int ) -> dict:
         "num_nodes": num_nodes,
         "supermajority": supermajority,
         "consensus_reached": consensus_reached,
-        "commited_nodes": committed_nodes,
+        "committed_nodes": committed_nodes,
     }
 
 def get_all_ledgers() -> dict:

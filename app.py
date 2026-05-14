@@ -14,6 +14,14 @@ app = Flask(__name__)
 @app.route('/')
 def home():
     #ref:  https://www.w3schools.com/html/html_forms.asp 
+
+    #ledger
+    ledgers = get_all_ledgers()
+    ledger_html = "<h2>Current Ledgers</h2>"
+    for node_id, records in ledgers.items():
+        rows = "".join(f"<tr><td>{r}</td></tr>" for r in records) or "tr<td><i>No records</i></td>"
+        ledger_html += f"<h4> Node {node_id}</h4><table>{rows}</table>"
+
     return """
     <h1>DLT Inventory System</h1>
     <h2>Submit a new inventory record</h2>
@@ -29,6 +37,9 @@ def home():
       <label for="tamper">Tamper with record after signing (demo)</label><br><br>
       <button type="submit">Submit</button>
     </form>
+
+    <h2>Current node Ledgers</h2>
+    {ledger_html}
     """
 
 @app.route('/add_record', methods=['POST'])
@@ -85,7 +96,7 @@ def add_record():
     <div class="phase">
       <b>Step 2 Proposal</b><br>
       Leader Node <b>{origin}</b> broadcasts the signed record to all
-      {consensus_result['n_nodes']} validator nodes: <b>{", ".join(f"Node {n}" for n in consensus_result['proposal']['to'])}</b>.
+      {consensus_result['num_nodes']} validator nodes: <b>{", ".join(f"Node {n}" for n in consensus_result['proposal']['to'])}</b>.
     </div>
     """
 
@@ -105,22 +116,22 @@ def add_record():
     <div class="phase">
       <b>Step 3 Voting (Pre-vote)</b><br>
       Each node re-hashes the received record and verifies the RSA signature
-      using Node {origin}'s public key. A supermajority of ≥ {consensus_result['threshold']}
+      using Node {origin}'s public key. A supermajority of ≥ {consensus_result['supermajority']}
       ACCEPT votes is required to prevent conflicting records being committed.
     </div>
     <table>
       <tr><th>Node</th><th>SHA-256 hash (int)</th><th>Pre-vote</th></tr>
       {vote_rows}
     </table>
-    <p>ACCEPT votes: <b>{consensus_result['accept_count']}</b> / {consensus_result['n_nodes']} &nbsp;|&nbsp;
-       Supermajority threshold (⌈2/3 × {consensus_result['n_nodes']}⌉): <b>{consensus_result['threshold']}</b></p>
+    <p>ACCEPT votes: <b>{consensus_result['accept_count']}</b> / {consensus_result['num_nodes']} &nbsp;|&nbsp;
+       Supermajority threshold (⌈2/3 {consensus_result['num_nodes']}⌉): <b>{consensus_result['supermajority']}</b></p>
     """
     if consensus_result['consensus_reached']:
-        committed = ", ".join(f"Node {n}" for n in result['committed_nodes'])
+        committed = ", ".join(f"Node {n}" for n in consensus_result['committed_nodes'])
         phase4_html = f"""
         <div class="phase">
           <b>Step 4 – Finality</b><br>
-          Supermajority met ({consensus_result['accept_count']} ≥ {consensus_result['threshold']}).
+          Supermajority met ({consensus_result['accept_count']} ≥ {consensus_result['supermajority']}).
           Record is final and appended to: <b>{committed}</b>.
         </div>
         <div class="commit">
@@ -131,7 +142,7 @@ def add_record():
         phase4_html = f"""
         <div class="phase">
           <b>Step 4 Finality</b><br>
-          Supermajority NOT met ({consensus_result['accept_count']} &lt; {consensus_result['threshold']}).
+          Supermajority NOT met ({consensus_result['accept_count']} &lt; {consensus_result['supermajority']}).
           Record cannot be finalised.
         </div>
         <div class="nocommit">
@@ -156,8 +167,8 @@ def add_record():
         
         <h2>Task 2 BFT Consensus</h2>
         <p>
-        Simplified BFT consensus with <b>{consensus_result['n_nodes']} nodes</b>.
-        Supermajority commit threshold: ≥ {consensus_result['threshold']} ACCEPT votes.
+        Simplified BFT consensus with <b>{consensus_result['num_nodes']} nodes</b>.
+        Supermajority commit threshold: ≥ {consensus_result['supermajority']} ACCEPT votes.
         </p>
  
     {phase1_html}
