@@ -33,24 +33,3 @@ e_d, n_d, d_d = gen_keys(P_D, Q_D, E_D)
 
 #Dictionary so loop over all 4 nodes easily.
 NODES = {"A": {"e": e_a, "n": n_a, "d": d_a}, "B": {"e": e_b, "n": n_b, "d": d_b}, "C": {"e": e_c, "n": n_c, "d": d_c}, "D": {"e": e_d, "n": n_d, "d": d_d},}
-
-if __name__ == "__main__":
-    print("Inventory A keys:")
-    print(f"  e = {e_a}")
-    print(f"  n = {n_a}")
-    print(f"  d = {d_a}")
-    print()
-    print("Inventory B keys:")
-    print(f"  e = {e_b}")
-    print(f"  n = {n_b}")
-    print(f"  d = {d_b}")
-    print()
-    print("Inventory c keys:")
-    print(f"  e = {e_c}")
-    print(f"  n = {n_c}")
-    print(f"  d = {d_c}")
-    print()
-    print("Inventory d keys:")
-    print(f"  e = {e_d}")
-    print(f"  n = {n_d}")
-    print(f"  d = {d_d}")
