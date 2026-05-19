@@ -7,6 +7,8 @@ from keys import NODES
 from rsa import sign, verify, hash_to_int
 #consensus.py handles consensus process for new records
 from consensus import bft_consensus, get_all_ledgers
+#query.py handles secure query workflow
+from query import process_query
 
 #ref: https://code.visualstudio.com/docs/python/tutorial-flask
 app = Flask(__name__)
@@ -37,11 +39,15 @@ def home():
       <label for="tamper">Tamper with record after signing (demo)</label><br><br>
       <button type="submit">Submit</button>
     </form>
-
+    <h2>Query inventory (Task 3)</h2>
+    <form action="/query" method="POST">
+      Item ID to query: <input name="item_id" maxlength="3" required><br><br>
+      <button type="submit">Submit Query</button>
+    </form>
+    
     {ledger_html}   
     """
     
-
 @app.route('/add_record', methods=['POST'])
 def add_record():
 
@@ -183,6 +189,159 @@ def add_record():
     {phase4_html}
     <hr>
     {ledger_html}
+    """
+
+@app.route('/query', methods=['POST'])
+def query_route():
+    #Task 3: Secure query workflow
+    #Takes item_id from the website and runs the full query process
+    item_id = request.form['item_id']
+    #Uses function from query.py to do the whole process
+    result = process_query(item_id)
+    #If the item wasn't found in any ledger, stop here
+    if not result['item_found']:
+        return f"<h1>No inventory ID '{item_id}' found</h1><a href='/'>Back to home</a>"
+
+    #step 1 html
+    step1_html = f"""
+    <div class="phase">
+      <b>Step 1 Query Submission</b><br>
+    </div>
+    """
+
+    #step 2
+    #Build the lookup table by looping over each node's result
+    lookup_rows = ""
+    for node_id in result['lookups']:
+        rec = result['lookups'][node_id]
+        if rec is None:
+            lookup_rows += f"<tr><td>Node {node_id}</td><td><i>not found</i></td></tr>"
+        else:
+            lookup_rows += f"<tr><td>Node {node_id}</td><td>qty={rec['qty']} price={rec['price']} origin={rec['origin']}</td></tr>"
+    step2_html = f"""
+    <div class="phase">
+      <b>Step 2 Item Lookup</b><br>
+    </div>
+    <table>
+      <tr><th>Node</th><th>Record found</th></tr>
+      {lookup_rows}
+    </table>
+    """
+
+    #step 3 html
+    step3_html = f"""
+    <div class="phase">
+      <b>Step 3 Response Message</b><br>
+      <b>{result['response']}</b>
+    </div>
+    """
+
+    #step 4 html
+    #Build the per-node t value table
+    #ref: https://www.w3schools.com/html/html_tables.asp
+    t_rows = ""
+    for node_id in result['signed']['t_values']:
+        t_val = result['signed']['t_values'][node_id]
+        t_rows += f"<tr><td>Node {node_id}</td><td>{t_val}</td></tr>"
+    #Build the partial signatures table
+    partial_rows = ""
+    for node_id in result['signed']['partial_sigs']:
+        sig = result['signed']['partial_sigs'][node_id]
+        partial_rows += f"<tr><td>Node {node_id}</td><td>{sig}</td></tr>"
+    step4_html = f"""
+    <div class="phase">
+      <b>Step 4 Harn Multi-Signature Generation</b><br>
+    </div>
+    <h4>node t valuess (t_i = r_i^e mod n)</h4>
+    <table><tr><th>Node</th><th>t_i</th></tr>{t_rows}</table>
+    <h4>Aggregated t (product of all t_i mod n)</h4>
+    <p>{result['signed']['t']}</p>
+    <h4>Hash h = H(t || message)</h4>
+    <p>{result['signed']['h']}</p>
+    <h4>Partial signatures (s_i = g_i * r_i^h mod n)</h4>
+    <table><tr><th>Node</th><th>s_i</th></tr>{partial_rows}</table>
+    <h4>Aggregated signature s (product of all s_i mod n)</h4>
+    <p>{result['signed']['s']}</p>
+    """
+
+    #step 5 html
+    #Build the consensus check table
+    consensus_rows = ""
+    for node_id in result['consensus']['node_results']:
+        ok = result['consensus']['node_results'][node_id]
+        css = "accept" if ok else "reject"
+        consensus_rows += f"<tr><td>Node {node_id}</td><td class='{css}'>{'VALID' if ok else 'INVALID'}</td></tr>"
+    all_consistent = "YES" if result['consensus']['all_consistent'] else "NO"
+    step5_html = f"""
+    <div class="phase">
+      <b>Step 5 Consensus Check</b><br>
+    </div>
+    <table>
+      <tr><th>Node</th><th>Verification</th></tr>
+      {consensus_rows}
+    </table>
+    <p>All nodes agree: <b>{all_consistent}</b></p>
+    """
+
+    #step 6 html
+    step6_html = f"""
+    <div class="phase">
+      <b>Step 6 RSA Encryption for Procurement Officer</b><br>
+    </div>
+    <p>Encrypted message: {result['encrypted']['enc_msg']}</p>
+    <p>Encrypted t: {result['encrypted']['enc_t']}</p>
+    <p>Encrypted s: {result['encrypted']['enc_s']}</p>
+    """
+
+    #step 7 html
+    #If the decrypted message matches the original then recovery worked
+    if result['recovery_ok']:
+        recovery_message = "Recovered message matches the original"
+    else:
+        recovery_message = "decryption failed or data was tampered with"
+    step7_html = f"""
+    <div class="phase">
+      <b>Step 7 Procurement Officer Decryption</b><br>
+    </div>
+    <p>Recovered message: <b>{result['decrypted']['message']}</b></p>
+    <p>Recovered t: {result['decrypted']['t']}</p>
+    <p>Recovered s: {result['decrypted']['s']}</p>
+    <p>{recovery_message}</p>
+    """
+
+    #step 8 html
+    #Final check
+    if result['final_check']['valid']:
+        final_message = "SIGNATURE VALID: Procurement Officer trusts the response"
+    else:
+        final_message = "SIGNATURE INVALID: response cannot be trusted"
+    step8_html = f"""
+    <div class="phase">
+      <b>Step 8 Final Multi-Signature Verification</b><br>
+    </div>
+    <p>left  = s^e mod n = {result['final_check']['left']}</p>
+    <p>right = (product of identities) * t^h mod n = {result['final_check']['right']}</p>
+    <p><b>{final_message}</b></p>
+    """
+
+    #ref: https://developer.mozilla.org/en-US/docs/Web/HTML
+    return f"""
+    <h1>Task 3 Secure Query Workflow</h1>
+    <p>
+    Multi-signature query verification using the Harn identity-based scheme,
+    with RSA encryption to deliver the response securely to the Procurement Officer.
+    </p>
+
+    {step1_html}
+    {step2_html}
+    {step3_html}
+    {step4_html}
+    {step5_html}
+    {step6_html}
+    {step7_html}
+    {step8_html}
+    <hr>
+    <a href="/">Back to home</a>
     """
 
 if __name__ == '__main__':
